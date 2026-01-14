@@ -96,7 +96,7 @@ describe('SettingsDialog Integration', () => {
     mockGetApiKeys.mockResolvedValue([]);
     mockGetDebugMode.mockResolvedValue(false);
     mockGetVersion.mockResolvedValue('1.0.0');
-    mockGetSelectedModel.mockResolvedValue({ provider: 'anthropic', model: 'anthropic/claude-haiku-4-5' });
+    mockGetSelectedModel.mockResolvedValue({ provider: 'anthropic', model: 'anthropic/claude-opus-4-5' });
     mockSetDebugMode.mockResolvedValue(undefined);
     mockSetSelectedModel.mockResolvedValue(undefined);
     mockValidateApiKeyForProvider.mockResolvedValue({ valid: true });
@@ -210,13 +210,13 @@ describe('SettingsDialog Integration', () => {
 
       // Act
       await waitFor(() => {
-        expect(screen.getByText('OpenAI')).toBeInTheDocument();
+        expect(screen.getByText('Google AI')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByText('OpenAI'));
+      fireEvent.click(screen.getByText('Google AI'));
 
       // Assert
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('sk-...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('AIza...')).toBeInTheDocument();
       });
     });
 

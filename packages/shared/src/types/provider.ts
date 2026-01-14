@@ -130,5 +130,5 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
 
 export const DEFAULT_MODEL: SelectedModel = {
   provider: 'anthropic',
-  model: 'anthropic/claude-haiku-4-5',
+  model: 'anthropic/claude-opus-4-5',
 };

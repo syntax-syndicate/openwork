@@ -23,9 +23,13 @@ interface SettingsDialogProps {
 // Provider configuration
 const API_KEY_PROVIDERS = [
   { id: 'anthropic', name: 'Anthropic', prefix: 'sk-ant-', placeholder: 'sk-ant-...' },
-  { id: 'openai', name: 'OpenAI', prefix: 'sk-', placeholder: 'sk-...' },
   { id: 'google', name: 'Google AI', prefix: 'AIza', placeholder: 'AIza...' },
-  { id: 'groq', name: 'Groq', prefix: 'gsk_', placeholder: 'gsk_...' },
+] as const;
+
+// Coming soon providers (displayed but not selectable)
+const COMING_SOON_PROVIDERS = [
+  { id: 'openai', name: 'OpenAI' },
+  { id: 'groq', name: 'Groq' },
 ] as const;
 
 type ProviderId = typeof API_KEY_PROVIDERS[number]['id'];
