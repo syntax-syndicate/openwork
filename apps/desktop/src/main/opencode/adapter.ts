@@ -370,7 +370,7 @@ export class OpenCodeAdapter extends EventEmitter<OpenCodeAdapterEvents> {
       console.log('[OpenCode CLI] Using OpenAI API key from settings');
     }
     if (apiKeys.google) {
-      env.GOOGLE_API_KEY = apiKeys.google;
+      env.GOOGLE_GENERATIVE_AI_API_KEY = apiKeys.google;
       console.log('[OpenCode CLI] Using Google API key from settings');
     }
     if (apiKeys.groq) {
