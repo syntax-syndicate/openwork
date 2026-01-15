@@ -163,7 +163,7 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
       setSelectedProvider(null);
       // Call onApiKeySaved to close dialog and execute any pending prompt
       onApiKeySaved?.();
-    }, 1500);
+    }, 1000);
   };
 
   const handleBack = () => {
