@@ -1,5 +1,6 @@
 import Store from 'electron-store';
 import type { Task, TaskMessage, TaskStatus } from '@accomplish/shared';
+import { getAgentSuffix } from '../utils/agent-config';
 
 /**
  * Task entry stored in history
@@ -21,7 +22,7 @@ interface TaskHistorySchema {
 }
 
 const taskHistoryStore = new Store<TaskHistorySchema>({
-  name: 'task-history',
+  name: `task-history${getAgentSuffix()}`,
   defaults: {
     tasks: [],
     maxHistoryItems: 100,
