@@ -86,9 +86,9 @@ const accomplishAPI = {
     ipcRenderer.invoke('opencode:version'),
 
   // Model selection
-  getSelectedModel: (): Promise<{ provider: string; model: string } | null> =>
+  getSelectedModel: (): Promise<{ provider: string; model: string; baseUrl?: string } | null> =>
     ipcRenderer.invoke('model:get'),
-  setSelectedModel: (model: { provider: string; model: string }): Promise<void> =>
+  setSelectedModel: (model: { provider: string; model: string; baseUrl?: string }): Promise<void> =>
     ipcRenderer.invoke('model:set', model),
 
   // Multi-provider API keys
