@@ -30,12 +30,22 @@ export interface SelectedModel {
 }
 
 /**
+ * Ollama model info from API
+ */
+export interface OllamaModelInfo {
+  id: string;        // e.g., "qwen3:latest"
+  displayName: string;
+  size: number;
+}
+
+/**
  * Ollama server configuration
  */
 export interface OllamaConfig {
   baseUrl: string;
   enabled: boolean;
   lastValidated?: number;
+  models?: OllamaModelInfo[];  // Discovered models from Ollama API
 }
 
 /**
