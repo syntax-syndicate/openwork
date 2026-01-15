@@ -299,7 +299,7 @@ describe('SettingsDialog Integration', () => {
 
       // Assert
       await waitFor(() => {
-        expect(screen.getByText('API Keys')).toBeInTheDocument();
+        expect(screen.getByText('My API Keys')).toBeInTheDocument();
       });
     });
 

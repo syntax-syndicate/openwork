@@ -143,12 +143,19 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     setWizardStep('select-model');
   };
 
-  const handleModelDone = (modelName: string) => {
+  const handleModelDone = async (modelName: string) => {
     setCompletionMessage(`Model set to ${modelName}`);
-    // Close dialog after brief delay
+    // Refresh current model
+    const accomplish = getAccomplish();
+    const model = await accomplish.getSelectedModel();
+    setCurrentModel(model);
+    // Reset wizard after showing success message (2.5s)
     setTimeout(() => {
-      onOpenChange(false);
-    }, 1500);
+      setCompletionMessage(null);
+      setWizardStep('choose-type');
+      setSelectedModelType(null);
+      setSelectedProvider(null);
+    }, 2500);
   };
 
   const handleBack = () => {
