@@ -135,11 +135,16 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
   };
 
   const handleApiKeySuccess = async () => {
-    // Refresh keys
-    const accomplish = getAccomplish();
-    const keys = await accomplish.getApiKeys();
-    setSavedKeys(keys);
-    onApiKeySaved?.();
+    // Refresh keys and proceed to model selection
+    try {
+      const accomplish = getAccomplish();
+      const keys = await accomplish.getApiKeys();
+      setSavedKeys(keys);
+      onApiKeySaved?.();
+    } catch (err) {
+      console.error('Failed to refresh keys after adding:', err);
+    }
+    // Always proceed to model selection
     setWizardStep('select-model');
   };
 
@@ -149,13 +154,13 @@ export default function SettingsDialog({ open, onOpenChange, onApiKeySaved }: Se
     const accomplish = getAccomplish();
     const model = await accomplish.getSelectedModel();
     setCurrentModel(model);
-    // Reset wizard after showing success message (2.5s)
+    // Reset wizard after showing success message (2s)
     setTimeout(() => {
       setCompletionMessage(null);
       setWizardStep('choose-type');
       setSelectedModelType(null);
       setSelectedProvider(null);
-    }, 2500);
+    }, 2000);
   };
 
   const handleBack = () => {
