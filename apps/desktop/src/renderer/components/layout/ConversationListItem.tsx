@@ -57,7 +57,7 @@ export default function ConversationListItem({ task }: ConversationListItemProps
   return (
     <button
       onClick={handleClick}
-      title={task.prompt}
+      title={task.summary || task.prompt}
       className={cn(
         'w-full text-left px-3 py-2 rounded-md text-sm transition-colors duration-200',
         'text-zinc-700 hover:bg-accent hover:text-accent-foreground',
@@ -66,7 +66,7 @@ export default function ConversationListItem({ task }: ConversationListItemProps
       )}
     >
       {getStatusIcon()}
-      <span className="block truncate flex-1">{task.prompt}</span>
+      <span className="block truncate flex-1">{task.summary || task.prompt}</span>
       <button
         onClick={handleDelete}
         className={cn(
