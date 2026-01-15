@@ -2,7 +2,6 @@ import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { PERMISSION_API_PORT } from '../permission-api';
-import { getPortOffset } from '../utils/agent-config';
 
 /**
  * Agent name used by Accomplish
@@ -38,10 +37,9 @@ You are Accomplish, a browser automation assistant.
 
 <environment>
 This app bundles Node.js. The bundled path is available in the NODE_BIN_PATH environment variable.
-The dev-browser port is configured via DEV_BROWSER_PORT (default: 9224).
-Before running node/npx/npm commands, prepend NODE_BIN_PATH to PATH and export DEV_BROWSER_PORT:
+Before running node/npx/npm commands, prepend it to PATH:
 
-DEV_BROWSER_PORT=9224 PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx ...
+PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx ...
 
 Never assume Node.js is installed system-wide. Always use the bundled version.
 </environment>
@@ -118,19 +116,19 @@ Browser automation that maintains page state across script executions. Write sma
 <critical-requirement>
 ##############################################################################
 # MANDATORY: ALL browser scripts MUST start with cd to the dev-browser directory
-# AND set DEV_BROWSER_PORT and PATH for the bundled Node.js!
+# AND prepend NODE_BIN_PATH to PATH for the bundled Node.js!
 #
 # CORRECT (always do this):
-#   cd {{SKILLS_PATH}}/dev-browser && DEV_BROWSER_PORT=9224 PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
+#   cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
 #   ...
 #   EOF
 #
-# WRONG (will fail - missing env vars or wrong directory):
+# WRONG (will fail - missing PATH or wrong directory):
 #   npx tsx <<'EOF'
 #   ...
 #   EOF
 #
-# NEVER run npx tsx without DEV_BROWSER_PORT and PATH prefix!
+# NEVER run npx tsx without the PATH prefix and cd to dev-browser directory!
 ##############################################################################
 </critical-requirement>
 
@@ -145,7 +143,7 @@ If it returns JSON with a \`wsEndpoint\`, proceed with browser automation. If co
 
 **Fallback** (only if server isn't running after multiple checks):
 \`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && DEV_BROWSER_PORT=9224 PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" ./server.sh &
 \`\`\`
 </setup>
 
@@ -154,7 +152,7 @@ Execute scripts inline using heredocs. ALWAYS cd to dev-browser directory first:
 
 <example name="basic-navigation">
 \`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && DEV_BROWSER_PORT=9224 PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
 import { connect, waitForPageLoad } from "@/client.js";
 
 const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
@@ -235,7 +233,7 @@ Page state persists after failures. Debug by reconnecting and taking a screensho
 
 <example name="debug-screenshot">
 \`\`\`bash
-cd {{SKILLS_PATH}}/dev-browser && DEV_BROWSER_PORT=9224 PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
+cd {{SKILLS_PATH}}/dev-browser && PATH="\${NODE_BIN_PATH}:\$PATH" npx tsx <<'EOF'
 import { connect } from "@/client.js";
 
 const taskId = process.env.ACCOMPLISH_TASK_ID || 'default';
@@ -357,11 +355,11 @@ export async function generateOpenCodeConfig(): Promise<string> {
   }
 
   // Get skills directory path and inject into system prompt
+  // Dev-browser uses static port 9224 - shared by all agents
+  // Task isolation is handled by task-scoped page names (${taskId}-main)
   const skillsPath = getSkillsPath();
-  const devBrowserPort = 9224 + getPortOffset();
   const systemPrompt = ACCOMPLISH_SYSTEM_PROMPT_TEMPLATE
-    .replace(/\{\{SKILLS_PATH\}\}/g, skillsPath)
-    .replace(/9224/g, String(devBrowserPort));
+    .replace(/\{\{SKILLS_PATH\}\}/g, skillsPath);
 
   console.log('[OpenCode Config] Skills path:', skillsPath);
 
