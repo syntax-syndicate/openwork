@@ -10,7 +10,7 @@ import type { TaskMessage } from '@accomplish/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, Terminal, Clock, Square, Play, Download, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
@@ -26,22 +26,6 @@ const SpinningIcon = ({ className }: { className?: string }) => (
     className={cn('animate-spin-ccw', className)}
   />
 );
-
-// Tool name to human-readable progress mapping
-const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }> = {
-  // Standard Claude Code tools
-  Read: { label: 'Reading files', icon: FileText },
-  Glob: { label: 'Finding files', icon: Search },
-  Grep: { label: 'Searching code', icon: Search },
-  Bash: { label: 'Running command', icon: Terminal },
-  Write: { label: 'Writing file', icon: FileText },
-  Edit: { label: 'Editing file', icon: FileText },
-  Task: { label: 'Running agent', icon: Brain },
-  WebFetch: { label: 'Fetching web page', icon: Search },
-  WebSearch: { label: 'Searching web', icon: Search },
-  // Dev Browser tools
-  dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
-};
 
 // Debounce utility
 function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
@@ -409,11 +393,21 @@ export default function ExecutionPage() {
       {currentTask.status === 'queued' && currentTask.messages.length > 0 && (
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="max-w-4xl mx-auto space-y-4">
-            {currentTask.messages
-              .filter((m) => !(m.type === 'tool' && m.toolName?.toLowerCase() === 'bash'))
-              .map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
+            {currentTask.messages.map((message) => {
+              if (message.type === 'tool') {
+                return (
+                  <ActivityRow
+                    key={message.id}
+                    id={message.id}
+                    tool={message.toolName || 'unknown'}
+                    input={message.toolInput}
+                    output={message.content}
+                    status="complete"
+                  />
+                );
+              }
+              return <MessageBubble key={message.id} message={message} />;
+            })}
 
             {/* Inline waiting indicator */}
             <motion.div
@@ -713,13 +707,8 @@ interface MessageBubbleProps {
 const MessageBubble = memo(function MessageBubble({ message, shouldStream = false, isLastMessage = false, isRunning = false, showContinueButton = false, continueLabel, onContinue, isLoading = false }: MessageBubbleProps) {
   const [streamComplete, setStreamComplete] = useState(!shouldStream);
   const isUser = message.type === 'user';
-  const isTool = message.type === 'tool';
   const isSystem = message.type === 'system';
   const isAssistant = message.type === 'assistant';
-
-  // Get tool icon from mapping
-  const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];
-  const ToolIcon = toolName && TOOL_PROGRESS_MAP[toolName]?.icon;
 
   // Mark stream as complete when shouldStream becomes false
   useEffect(() => {
@@ -755,80 +744,63 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
           'max-w-[85%] rounded-2xl px-4 py-3 transition-all duration-150',
           isUser
             ? 'bg-primary text-primary-foreground'
-            : isTool
-              ? 'bg-muted border border-border'
-              : isSystem
-                ? 'bg-muted/50 border border-border'
-                : 'bg-card border border-border'
+            : isSystem
+              ? 'bg-muted/50 border border-border'
+              : 'bg-card border border-border'
         )}
       >
-        {/* Tool messages: show only label and loading animation */}
-        {isTool ? (
-          <>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-              {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-              <span>{TOOL_PROGRESS_MAP[toolName || '']?.label || toolName || 'Processing'}</span>
-              {isLastMessage && isRunning && (
-                <SpinningIcon className="h-3.5 w-3.5 ml-1" />
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            {isSystem && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 font-medium">
-                <Terminal className="h-3.5 w-3.5" />
-                System
-              </div>
+        {isSystem && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5 font-medium">
+            <Terminal className="h-3.5 w-3.5" />
+            System
+          </div>
+        )}
+        {isUser ? (
+          <p
+            className={cn(
+              'text-sm whitespace-pre-wrap break-words',
+              'text-primary-foreground'
             )}
-            {isUser ? (
-              <p
-                className={cn(
-                  'text-sm whitespace-pre-wrap break-words',
-                  'text-primary-foreground'
-                )}
-              >
-                {message.content}
-              </p>
-            ) : isAssistant && shouldStream && !streamComplete ? (
-              <StreamingText
-                text={message.content}
-                speed={120}
-                isComplete={streamComplete}
-                onComplete={() => setStreamComplete(true)}
-              >
-                {(streamedText) => (
-                  <div className={proseClasses}>
-                    <ReactMarkdown>{streamedText}</ReactMarkdown>
-                  </div>
-                )}
-              </StreamingText>
-            ) : (
+          >
+            {message.content}
+          </p>
+        ) : isAssistant && shouldStream && !streamComplete ? (
+          <StreamingText
+            text={message.content}
+            speed={120}
+            isComplete={streamComplete}
+            onComplete={() => setStreamComplete(true)}
+          >
+            {(streamedText) => (
               <div className={proseClasses}>
-                <ReactMarkdown>{message.content}</ReactMarkdown>
+                <ReactMarkdown>{streamedText}</ReactMarkdown>
               </div>
             )}
-            <p
-              className={cn(
-                'text-xs mt-1.5',
-                isUser ? 'text-primary-foreground/70' : 'text-muted-foreground'
-              )}
-            >
-              {new Date(message.timestamp).toLocaleTimeString()}
-            </p>
-            {/* Continue button inside assistant bubble */}
-            {isAssistant && showContinueButton && onContinue && (
-              <Button
-                size="sm"
-                onClick={onContinue}
-                disabled={isLoading}
-                className="mt-3 gap-1.5"
-              >
-                <Play className="h-3 w-3" />
-                {continueLabel || 'Continue'}
-              </Button>
-            )}
-          </>
+          </StreamingText>
+        ) : (
+          <div className={proseClasses}>
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+        )}
+        <p
+          className={cn(
+            'text-xs mt-1.5',
+            isUser ? 'text-primary-foreground/70' : 'text-muted-foreground'
+          )}
+        >
+          {new Date(message.timestamp).toLocaleTimeString()}
+        </p>
+        {/* Continue button inside assistant bubble */}
+        {isAssistant && showContinueButton && onContinue && (
+          <Button
+            size="sm"
+            onClick={onContinue}
+            disabled={isLoading}
+            className="mt-3 gap-1.5"
+          >
+            <Play className="h-3 w-3" />
+            {continueLabel || 'Continue'}
+          </Button>
         )}
       </div>
     </motion.div>
