@@ -69,7 +69,14 @@ vi.mock('electron', () => {
         id: 1,
         isDestroyed: vi.fn(() => false),
       })),
-      getAllWindows: vi.fn(() => [{ id: 1 }]),
+      getAllWindows: vi.fn(() => [{
+        id: 1,
+        isDestroyed: vi.fn(() => false),
+        webContents: {
+          send: vi.fn(),
+          isDestroyed: vi.fn(() => false),
+        },
+      }]),
     },
     shell: {
       openExternal: vi.fn(),
@@ -1526,7 +1533,10 @@ describe('IPC Handlers Integration', () => {
         id: 1, // Different ID
         isDestroyed: () => false,
       });
-      (BrowserWindow.getAllWindows as Mock).mockReturnValue([{ id: 1 }, { id: 2 }]);
+      (BrowserWindow.getAllWindows as Mock).mockReturnValue([
+        { id: 1, isDestroyed: () => false, webContents: { send: vi.fn() } },
+        { id: 2, isDestroyed: () => false, webContents: { send: vi.fn() } },
+      ]);
 
       mockTaskManager.startTask.mockResolvedValue({
         id: 'task_test',
@@ -1554,7 +1564,9 @@ describe('IPC Handlers Integration', () => {
         id: 2, // Different but only one window
         isDestroyed: () => false,
       });
-      (BrowserWindow.getAllWindows as Mock).mockReturnValue([{ id: 1 }]); // Only one window
+      (BrowserWindow.getAllWindows as Mock).mockReturnValue([
+        { id: 1, isDestroyed: () => false, webContents: { send: vi.fn() } },
+      ]); // Only one window
 
       mockTaskManager.startTask.mockResolvedValue({
         id: 'task_single',
