@@ -227,7 +227,7 @@ export const ActivityRow = memo(function ActivityRow({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="ml-6 mt-1 space-y-2 pb-2">
+            <div className="px-3 mt-1 space-y-2 pb-2">
               {/* Request block */}
               {formattedInput && (
                 <CodeBlock label="Request" content={formattedInput} />
