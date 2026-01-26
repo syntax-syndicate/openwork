@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy } from 'lucide-react';
+import { XCircle, CornerDownLeft, ArrowLeft, CheckCircle2, AlertCircle, AlertTriangle, Terminal, Wrench, FileText, Search, Code, Brain, Clock, Square, Play, Download, File, Bug, ChevronUp, ChevronDown, Trash2, Check, Copy, Globe, MousePointer2, Type, Image, Keyboard, ArrowUpDown, ListChecks, Layers, Highlighter, ListOrdered, Upload, Move, Frame, ShieldCheck, MessageCircleQuestion, CheckCircle, Lightbulb, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { StreamingText } from '../components/ui/streaming-text';
@@ -43,6 +43,8 @@ const SpinningIcon = ({ className }: { className?: string }) => (
 
 // Tool name to human-readable progress mapping
 const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }> = {
+  // Special error case - OpenCode returns "invalid" when LLM makes invalid tool call
+  invalid: { label: 'Retrying...', icon: AlertCircle },
   // Standard Claude Code tools
   Read: { label: 'Reading files', icon: FileText },
   Glob: { label: 'Finding files', icon: Search },
@@ -53,9 +55,72 @@ const TOOL_PROGRESS_MAP: Record<string, { label: string; icon: typeof FileText }
   Task: { label: 'Running agent', icon: Brain },
   WebFetch: { label: 'Fetching web page', icon: Search },
   WebSearch: { label: 'Searching web', icon: Search },
-  // Dev Browser tools
+  // Dev Browser tools (legacy)
   dev_browser_execute: { label: 'Executing browser action', icon: Terminal },
+  // Browser MCP tools
+  browser_navigate: { label: 'Navigating', icon: Globe },
+  browser_snapshot: { label: 'Reading page', icon: Search },
+  browser_click: { label: 'Clicking', icon: MousePointer2 },
+  browser_type: { label: 'Typing', icon: Type },
+  browser_screenshot: { label: 'Taking screenshot', icon: Image },
+  browser_evaluate: { label: 'Running script', icon: Code },
+  browser_keyboard: { label: 'Pressing keys', icon: Keyboard },
+  browser_scroll: { label: 'Scrolling', icon: ArrowUpDown },
+  browser_hover: { label: 'Hovering', icon: MousePointer2 },
+  browser_select: { label: 'Selecting option', icon: ListChecks },
+  browser_wait: { label: 'Waiting', icon: Clock },
+  browser_tabs: { label: 'Managing tabs', icon: Layers },
+  browser_pages: { label: 'Getting pages', icon: Layers },
+  browser_highlight: { label: 'Highlighting', icon: Highlighter },
+  browser_sequence: { label: 'Browser sequence', icon: ListOrdered },
+  browser_file_upload: { label: 'Uploading file', icon: Upload },
+  browser_drag: { label: 'Dragging', icon: Move },
+  browser_get_text: { label: 'Getting text', icon: FileText },
+  browser_is_visible: { label: 'Checking visibility', icon: Search },
+  browser_is_enabled: { label: 'Checking state', icon: Search },
+  browser_is_checked: { label: 'Checking state', icon: Search },
+  browser_iframe: { label: 'Switching frame', icon: Frame },
+  browser_canvas_type: { label: 'Typing in canvas', icon: Type },
+  browser_script: { label: 'Browser Actions', icon: Globe },
+  // Utility MCP tools
+  request_file_permission: { label: 'Requesting permission', icon: ShieldCheck },
+  AskUserQuestion: { label: 'Asking question', icon: MessageCircleQuestion },
+  complete_task: { label: 'Completing task', icon: CheckCircle },
+  report_thought: { label: 'Thinking', icon: Lightbulb },
+  report_checkpoint: { label: 'Checkpoint', icon: Flag },
 };
+
+// Extract base tool name from MCP-prefixed tool names
+// MCP tools are prefixed as "servername_toolname", e.g.:
+//   "dev-browser-mcp_browser_navigate" -> "browser_navigate"
+//   "file-permission_request_file_permission" -> "request_file_permission"
+//   "complete-task_complete_task" -> "complete_task"
+function getBaseToolName(toolName: string): string {
+  // Try progressively stripping prefixes at each underscore position
+  // to find a match in our map. This handles server names with hyphens
+  // (e.g., "file-permission_request_file_permission" needs to split
+  // after "file-permission_", not after "file_").
+  let idx = 0;
+  while ((idx = toolName.indexOf('_', idx)) !== -1) {
+    const candidate = toolName.substring(idx + 1);
+    if (TOOL_PROGRESS_MAP[candidate]) {
+      return candidate;
+    }
+    idx += 1;
+  }
+  return toolName;
+}
+
+// Get tool display info (label and icon) from tool name
+function getToolDisplayInfo(toolName: string): { label: string; icon: typeof FileText } | undefined {
+  // First try direct lookup
+  if (TOOL_PROGRESS_MAP[toolName]) {
+    return TOOL_PROGRESS_MAP[toolName];
+  }
+  // Then try extracting base name from MCP-prefixed name
+  const baseName = getBaseToolName(toolName);
+  return TOOL_PROGRESS_MAP[baseName];
+}
 
 
 // Debounce utility
@@ -707,7 +772,7 @@ export default function ExecutionPage() {
                       <SpinningIcon className="h-4 w-4" />
                       <span className="text-sm">
                         {currentTool
-                          ? ((currentToolInput as { description?: string })?.description || TOOL_PROGRESS_MAP[currentTool]?.label || currentTool)
+                          ? ((currentToolInput as { description?: string })?.description || getToolDisplayInfo(currentTool)?.label || currentTool)
                           : (startupStageTaskId === id && startupStage)
                             ? startupStage.message
                             : 'Thinking...'}
@@ -1265,9 +1330,10 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
     return null;
   }
 
-  // Get tool icon from mapping
+  // Get tool display info from mapping
   const toolName = message.toolName || message.content?.match(/Using tool: (\w+)/)?.[1];
-  const ToolIcon = toolName && TOOL_PROGRESS_MAP[toolName]?.icon;
+  const toolDisplayInfo = toolName ? getToolDisplayInfo(toolName) : undefined;
+  const ToolIcon = toolDisplayInfo?.icon;
 
   // Mark stream as complete when shouldStream becomes false
   useEffect(() => {
@@ -1349,7 +1415,7 @@ const MessageBubble = memo(function MessageBubble({ message, shouldStream = fals
         {isTool ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             {ToolIcon ? <ToolIcon className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
-            <span>{TOOL_PROGRESS_MAP[toolName || '']?.label || toolName || 'Processing'}</span>
+            <span>{toolDisplayInfo?.label || toolName || 'Processing'}</span>
             {isLastMessage && isRunning && (
               <SpinningIcon className="h-3.5 w-3.5 ml-1" />
             )}
